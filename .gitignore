@@ -1,0 +1,17 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test artifacts
+run-tests.sh
+
+# Temporary files
+*.tmp
+*.log
+TEST-RESULTS.md

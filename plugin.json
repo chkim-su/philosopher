@@ -1,0 +1,45 @@
+{
+  "name": "philosopher",
+  "version": "1.0.0",
+  "description": "Multi-agent debate and Socratic self-refining plugins for deep philosophical exploration",
+  "author": "chanhokim",
+  "skills": [
+    {
+      "name": "debate",
+      "description": "3인 공격적 토론: 주제에 대해 3개의 LLM이 3라운드 토론 후 합의점 도출",
+      "path": "skills/aggressive-debate"
+    },
+    {
+      "name": "socratic",
+      "description": "소크라테스식 자문자답: ultrathink 심층 분석 후 brainstorm 에이전트와 Q&A로 정제",
+      "path": "skills/socratic-refine"
+    }
+  ],
+  "agents": [
+    {
+      "name": "debate-orchestrator",
+      "description": "토론 전체 흐름을 조율하고 라운드를 관리하는 오케스트레이터",
+      "path": "agents/debate-orchestrator.md"
+    },
+    {
+      "name": "debater",
+      "description": "주제 기반 관점을 가진 토론자 에이전트 (복수 인스턴스로 사용)",
+      "path": "agents/debater.md"
+    },
+    {
+      "name": "socratic-orchestrator",
+      "description": "소크라테스식 Q&A 루프를 관리하고 Thinker-Questioner 간 컨텍스트를 영속적으로 유지하는 오케스트레이터",
+      "path": "agents/socratic-orchestrator.md"
+    },
+    {
+      "name": "socratic-thinker",
+      "description": "ultrathink 모드로 문제를 심층 분석하는 사고 에이전트",
+      "path": "agents/socratic-thinker.md"
+    },
+    {
+      "name": "socratic-questioner",
+      "description": "품질 기반 만족 조건으로 질문하는 brainstorm 역할 에이전트",
+      "path": "agents/socratic-questioner.md"
+    }
+  ]
+}
