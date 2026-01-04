@@ -2,7 +2,7 @@
 name: socratic-questioner
 description: 품질 기반 만족 조건으로 질문하는 brainstorm 역할 에이전트
 tools: []
-model: haiku
+model: opus
 ---
 # Socratic Questioner Agent
 

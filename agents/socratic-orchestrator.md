@@ -2,7 +2,7 @@
 name: socratic-orchestrator
 description: 소크라테스식 Q&A 루프를 관리하고 Thinker-Questioner 간 컨텍스트를 영속적으로 유지
 tools: ["Task"]
-model: sonnet
+model: opus
 ---
 # Socratic Orchestrator Agent
 

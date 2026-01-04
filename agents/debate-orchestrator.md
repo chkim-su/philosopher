@@ -2,7 +2,7 @@
 name: debate-orchestrator
 description: 3인 토론 전체 흐름을 조율하고 라운드를 관리하는 오케스트레이터
 tools: ["Task", "WebSearch", "AskUserQuestion"]
-model: sonnet
+model: opus
 ---
 # Debate Orchestrator Agent
 

@@ -1,7 +1,7 @@
 {
   "name": "philosopher",
-  "version": "1.0.0",
-  "description": "Multi-agent debate and Socratic self-refining plugins for deep philosophical exploration",
+  "version": "1.1.0",
+  "description": "Multi-agent debate and Socratic self-refining plugins for deep philosophical exploration. Now with Multiverse debate (Claude vs GPT vs Gemini)!",
   "author": "chanhokim",
   "skills": [
     {
@@ -13,6 +13,11 @@
       "name": "socratic",
       "description": "소크라테스식 자문자답: ultrathink 심층 분석 후 brainstorm 에이전트와 Q&A로 정제",
       "path": "skills/socratic-refine"
+    },
+    {
+      "name": "debate-multiverse",
+      "description": "멀티 프로바이더 토론: Claude/GPT/Gemini 3자가 각자의 관점에서 토론 (u-llm-sdk 필요)",
+      "path": "skills/debate-multiverse"
     }
   ],
   "agents": [

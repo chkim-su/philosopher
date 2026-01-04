@@ -2,7 +2,7 @@
 name: debater
 description: 주제 기반 관점을 가진 토론자 에이전트 (복수 인스턴스로 사용)
 tools: ["WebSearch"]
-model: sonnet
+model: opus
 ---
 # Debater Agent
 
