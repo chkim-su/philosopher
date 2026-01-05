@@ -1,10 +1,15 @@
 ---
 name: topic-clarifier
-description: 토론 주제의 품질을 분석하고 모호한 주제를 AskUserQuestion으로 명확화하는 에이전트 (기술/방법론 토론 최적화)
+description: "[DEPRECATED] Use /clarify-topic command instead. 토론 주제의 품질을 분석하고 모호한 주제를 AskUserQuestion으로 명확화하는 에이전트"
 tools: ["AskUserQuestion"]
 model: sonnet
+deprecated: true
+deprecatedBy: "/commands/clarify-topic.md"
 ---
 # Topic Clarifier Agent
+
+> **DEPRECATED**: This agent has been converted to the `/clarify-topic` command.
+> Use `/clarify-topic [주제]` for topic clarification.
 
 토론 주제를 분석하고, 품질이 부족할 경우 사용자와 상호작용하여 명확화합니다.
 **기술적 의사결정 토론에 최적화되어 있습니다.**

@@ -4,8 +4,8 @@ Debate Topic Quality Validator with Agent Delegation
 
 Implements Pattern 2: Hook → Agent → Skill (100% Success)
 - Hook analyzes topic quality using dimension-based analysis
-- If quality is insufficient, blocks and instructs Claude to call topic-clarifier agent
-- topic-clarifier agent uses AskUserQuestion to clarify with user
+- If quality is insufficient, blocks and instructs Claude to use /clarify-topic command
+- /clarify-topic command uses AskUserQuestion to clarify with user
 - Claude retries with clarified topic
 
 Optimized for TECHNICAL debates:
@@ -338,7 +338,7 @@ def validate_input():
 
     Pattern 2 Implementation:
     - If topic quality is good: allow skill execution
-    - If topic quality is bad: block + instruct Claude to call topic-clarifier agent
+    - If topic quality is bad: block + instruct Claude to use /clarify-topic command
     """
     try:
         input_data = json.load(sys.stdin)
@@ -409,16 +409,15 @@ MANDATORY: 사용자에게 토론 주제를 입력받으세요."""
 품질 점수: {analysis.overall_score:.2f}/1.00
 주요 문제: {analysis.primary_issue}
 
-MANDATORY: philosopher:topic-clarifier 에이전트를 호출하여 주제를 명확화하세요.
+MANDATORY: /clarify-topic 커맨드를 사용하여 주제를 명확화하세요.
 
-Task tool 사용법:
-- subagent_type: "philosopher:topic-clarifier"
-- prompt: 아래 분석 결과와 함께 주제 전달
+사용법:
+  /clarify-topic "{analysis.topic}"
 
 분석 결과:
 {analysis_json}
 
-에이전트가 프로젝트 맥락, 비교 대상, 의사결정 범위 등을 질문하여 명확화합니다.
+커맨드가 프로젝트 맥락, 비교 대상, 의사결정 범위 등을 질문하여 명확화합니다.
 명확화된 주제로 /debate 스킬을 다시 호출하세요."""
 
         print(json.dumps({
