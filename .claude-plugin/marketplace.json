@@ -1,0 +1,15 @@
+{
+  "name": "philosopher",
+  "version": "1.1.0",
+  "description": "Multi-agent debate and Socratic self-refining plugins for deep philosophical exploration. Now with Multiverse debate (Claude vs GPT vs Gemini)!",
+  "author": "chanhokim",
+  "repository": "https://github.com/chkim-su/philosopher",
+  "keywords": ["debate", "philosophy", "socratic", "multi-llm", "multiverse"],
+  "license": "MIT",
+  "engines": {
+    "claude-code": ">=1.0.0"
+  },
+  "dependencies": {
+    "u-llm-sdk": ">=0.1.0"
+  }
+}
