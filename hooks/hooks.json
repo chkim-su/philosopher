@@ -1,1 +1,47 @@
-{"hooks": [], "note": "No enforcement hooks needed - keywords are documentation context only"}
+{
+  "version": "1.1.0",
+  "note": "Quality validation hooks for philosopher plugin - debate topic quality and script execution",
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "matcher": {
+        "tool_name": "Skill"
+      },
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 hooks/validate_debate_topic.py"
+        }
+      ],
+      "description": "Validate debate topic quality using forge-analyzer inspired dimension analysis"
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": {
+        "tool_name": "Bash",
+        "command_pattern": "multi_llm_debater\\.py"
+      },
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 hooks/validate_debate_args.py"
+        }
+      ],
+      "description": "Validate multi_llm_debater.py arguments before execution"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": {
+        "tool_name": "Bash",
+        "command_pattern": "multi_llm_debater\\.py"
+      },
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 hooks/validate_debate_output.py"
+        }
+      ],
+      "description": "Validate debate output JSON structure after execution"
+    }
+  ]
+}

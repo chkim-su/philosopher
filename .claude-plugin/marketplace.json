@@ -23,11 +23,12 @@
     "./agents/debater.md",
     "./agents/socratic-questioner.md",
     "./agents/socratic-thinker.md",
-    "./agents/socratic-orchestrator.md"
+    "./agents/socratic-orchestrator.md",
+    "./agents/topic-clarifier.md"
   ],
   "skills": [
+    "./skills/aggressive-debate",
     "./skills/socratic-refine",
-    "./skills/debate-multiverse",
-    "./skills/aggressive-debate"
+    "./skills/debate-multiverse"
   ]
 }

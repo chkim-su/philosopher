@@ -45,6 +45,11 @@
       "name": "socratic-questioner",
       "description": "품질 기반 만족 조건으로 질문하는 brainstorm 역할 에이전트",
       "path": "agents/socratic-questioner.md"
+    },
+    {
+      "name": "topic-clarifier",
+      "description": "토론 주제의 품질을 분석하고 모호한 주제를 AskUserQuestion으로 명확화하는 에이전트",
+      "path": "agents/topic-clarifier.md"
     }
   ]
 }

@@ -1,7 +1,7 @@
 ---
 name: debate-multiverse
 description: 멀티 프로바이더 토론 - Claude/GPT/Gemini 3자가 각자의 관점에서 토론
-allowed-tools: ["Task", "Bash", "Read", "Glob", "Grep", "WebSearch", "WebFetch", "AskUserQuestion"]
+allowed-tools: ["Task", "Bash", "Read", "WebSearch", "WebFetch", "AskUserQuestion"]
 ---
 
 # Multi-Provider Debate Skill (Multiverse)
@@ -326,6 +326,106 @@ timeout_per_phase = {
     "prep_defense": 180,       # WebSearch 포함
     "round_defense": 90
 }
+```
+
+## Provider Fallback
+
+### 사전 가용성 테스트 (Pre-Debate Health Check)
+
+토론 시작 전 Gemini/Codex 프로바이더의 API 가용성을 자동으로 테스트합니다:
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  PRE-DEBATE HEALTH CHECK                                    │
+├────────────────────────────────────────────────────────────┤
+│  • Claude: 테스트 생략 (항상 사용 가능하다고 가정)           │
+│  • Gemini/Codex: 간단한 "OK" 응답 테스트 (15초 타임아웃)    │
+│  • 테스트 실패 시: Claude로 자동 대체                        │
+└────────────────────────────────────────────────────────────┘
+```
+
+```bash
+# 가용성 테스트만 실행하고 종료
+python scripts/multi_llm_debater.py --provider gemini --health-check-only
+
+# 출력 예시
+{
+  "health_check": {
+    "gemini": {
+      "provider": "gemini",
+      "available": true,
+      "latency_ms": 1234.56
+    }
+  }
+}
+```
+
+### 실행 중 자동 폴백 (Runtime Fallback)
+
+토론 실행 중 API 제한(rate limit, quota 등) 발생 시:
+
+1. **해당 phase만** Claude Opus로 자동 재실행
+2. 전환 이력이 최종 결과 JSON에 포함됨
+3. 이전 phase나 다른 토론자는 영향받지 않음
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  FALLBACK TRIGGERS (폴백 발동 조건)                         │
+├────────────────────────────────────────────────────────────┤
+│  ✅ Rate Limit (429, "too many requests")                   │
+│  ✅ Quota Exceeded ("billing", "insufficient credits")      │
+│  ✅ Timeout ("timed out", "deadline exceeded")             │
+│  ✅ Service Unavailable (503, "temporarily unavailable")   │
+│  ✅ Overloaded ("capacity", "busy", "try again later")     │
+├────────────────────────────────────────────────────────────┤
+│  ❌ Auth Error (401, 403) → 즉시 실패 (폴백 안함)          │
+│  ❌ Content Policy → 즉시 실패 (폴백 안함)                  │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 폴백 발생 시 출력 형식
+
+```json
+{
+  "success": true,
+  "provider": "claude",
+  "fallback_used": true,
+  "original_provider": "gemini",
+  "fallback_history": [
+    {
+      "phase": "round_claim",
+      "original_provider": "gemini",
+      "fallback_provider": "claude",
+      "error_type": "rate_limit",
+      "error_message": "Rate limit exceeded",
+      "timestamp": "2026-01-05T10:30:00Z",
+      "recovery_time_ms": 2345.67
+    }
+  ],
+  "result": { ... }
+}
+```
+
+### Fallback CLI 옵션
+
+| Option | Description |
+|--------|-------------|
+| `--disable-fallback` | 자동 폴백 비활성화 (프로바이더 오류 시 즉시 실패) |
+| `--skip-health-check` | 사전 가용성 테스트 생략 |
+| `--health-check-only` | 가용성 테스트만 실행하고 종료 |
+
+```bash
+# 폴백 비활성화: gemini가 실패하면 즉시 오류
+python scripts/multi_llm_debater.py \
+    --provider gemini --role A --phase round_claim \
+    --topic "AI 규제" --viewpoint "찬성" \
+    --disable-fallback
+
+# 사전 테스트 생략: 바로 실행 시작
+python scripts/multi_llm_debater.py \
+    --provider gemini --role A --phase round_claim \
+    --topic "AI 규제" --viewpoint "찬성" \
+    --skip-health-check
 ```
 
 ## Notes
