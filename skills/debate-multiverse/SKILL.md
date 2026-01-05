@@ -1,7 +1,7 @@
 ---
 name: debate-multiverse
 description: 멀티 프로바이더 토론 - Claude/GPT/Gemini 3자가 각자의 관점에서 토론
-allowed-tools: ["Task", "Bash", "WebSearch", "AskUserQuestion"]
+allowed-tools: ["Task", "Bash", "Read", "Glob", "Grep", "WebSearch", "WebFetch", "AskUserQuestion"]
 ---
 
 # Multi-Provider Debate Skill (Multiverse)
@@ -67,6 +67,35 @@ allowed-tools: ["Task", "Bash", "WebSearch", "AskUserQuestion"]
 | gpt / codex | OpenAI via Codex | gpt-5.2 + HIGH reasoning |
 | gemini | Google Gemini | gemini-3-pro-preview |
 
+## Debate Phases
+
+토론은 5개의 phase로 진행됩니다:
+
+| Phase | 설명 | WebSearch | 실행 방식 |
+|-------|------|-----------|----------|
+| `initial_research` | 사전 조사 | ✅ 활성화 | **병렬** |
+| `round_claim` | 라운드 첫 발언자 주장 | ❌ | 순차 |
+| `round_claim_attack` | 후속 발언자 주장 + 공격 | ❌ | 순차 |
+| `prep_defense` | 라운드 간 방어 준비 | ✅ 활성화 | **병렬** |
+| `round_defense` | 방어 + 반격 | ❌ | 순차 |
+
+### Context Isolation (핵심 원칙)
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  CONTEXT ISOLATION: 각 토론자는 자신에게 공개된 정보만 접근     │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  Debater A가 받는 컨텍스트:                                 │
+│  ├─ topic (주제)                                           │
+│  ├─ own_research (자신의 조사 결과)                         │
+│  └─ visible_statements (이전 발언자들의 공개된 발언)         │
+│                                                            │
+│  ⚠️ B의 조사 결과, C의 전략 등은 절대 공개되지 않음          │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
 ## Execution Instructions
 
 ### Step 1: Parse Arguments & Initialize
@@ -99,84 +128,132 @@ if user_providers:
 이는 각 LLM의 특성을 활용하여 더 풍부한 토론을 유도합니다.
 ```
 
-### Step 3: Research Phase (Parallel)
+### Step 3: Initial Research Phase (⚡ PARALLEL)
 
-각 프로바이더를 병렬로 호출하여 연구 수행:
+**중요: 이 phase는 반드시 병렬로 실행해야 합니다.**
+
+각 프로바이더를 병렬로 호출하여 독립적 조사 수행:
 
 ```bash
-# 병렬 실행을 위해 background 프로세스로 실행
+# 병렬 실행 - 모든 토론자가 동시에 조사
 python scripts/multi_llm_debater.py \
-    --provider claude \
-    --role A \
-    --stage research \
-    --topic "{topic}" \
-    --viewpoint "{viewpoint_a}" &
+    --provider claude --role A --phase initial_research \
+    --topic "{topic}" --viewpoint "{viewpoint_a}" &
 
 python scripts/multi_llm_debater.py \
-    --provider gpt \
-    --role B \
-    --stage research \
-    --topic "{topic}" \
-    --viewpoint "{viewpoint_b}" &
+    --provider gpt --role B --phase initial_research \
+    --topic "{topic}" --viewpoint "{viewpoint_b}" &
 
 python scripts/multi_llm_debater.py \
-    --provider gemini \
-    --role C \
-    --stage research \
-    --topic "{topic}" \
-    --viewpoint "{viewpoint_c}" &
+    --provider gemini --role C --phase initial_research \
+    --topic "{topic}" --viewpoint "{viewpoint_c}" &
 
 wait  # 모든 프로세스 완료 대기
 ```
 
-### Step 4: Preparation Phase (Parallel)
+각 조사 결과는 해당 토론자의 private context로 저장됩니다.
 
-각 토론자에게 상대방의 연구 결과를 전달:
+### Step 4: Round 1 - Claims & Attacks (Sequential)
 
 ```bash
+# A가 먼저 주장 (공격 대상 없음)
 python scripts/multi_llm_debater.py \
-    --provider {provider_a} \
-    --role A \
-    --stage preparation \
-    --topic "{topic}" \
-    --viewpoint "{viewpoint_a}" \
-    --own-research '{research_a_json}' \
-    --opponent-research '{research_b_json}\n{research_c_json}'
+    --provider claude --role A --phase round_claim \
+    --topic "{topic}" --viewpoint "{viewpoint_a}" \
+    --round 1 --own-research '{research_a_json}'
+
+# B가 주장 + A 공격 (A의 발언만 visible)
+python scripts/multi_llm_debater.py \
+    --provider gpt --role B --phase round_claim_attack \
+    --topic "{topic}" --viewpoint "{viewpoint_b}" \
+    --round 1 --speaker-order 2 \
+    --own-research '{research_b_json}' \
+    --visible-statements '{statement_a_json}'
+
+# C가 주장 + A,B 공격 (A,B 발언 모두 visible)
+python scripts/multi_llm_debater.py \
+    --provider gemini --role C --phase round_claim_attack \
+    --topic "{topic}" --viewpoint "{viewpoint_c}" \
+    --round 1 --speaker-order 3 \
+    --own-research '{research_c_json}' \
+    --visible-statements '{statement_a_json}\n{statement_b_json}'
 ```
 
-### Step 5: Debate Rounds (Sequential with Rotation)
+### Step 5: Defense Preparation (⚡ PARALLEL)
 
-3라운드 토론 진행:
+**중요: 이 phase는 반드시 병렬로 실행해야 합니다.**
+
+각 토론자가 자신에게 온 공격을 분석하고 추가 조사:
 
 ```bash
-# Round 1: A → B → C
-for speaker in A B C; do
-    python scripts/multi_llm_debater.py \
-        --provider {provider_$speaker} \
-        --role $speaker \
-        --stage debate \
-        --topic "{topic}" \
-        --viewpoint "{viewpoint_$speaker}" \
-        --round 1 \
-        --preparation '{preparation_json}' \
-        --debate-history '{debate_history_json}' \
-        --constraints "{constraints}"
+# 병렬 실행 - 모든 토론자가 동시에 방어 준비
+python scripts/multi_llm_debater.py \
+    --provider claude --role A --phase prep_defense \
+    --topic "{topic}" --viewpoint "{viewpoint_a}" \
+    --round 1 \
+    --own-research '{research_a_json}' \
+    --debate-history '{round1_history}' \
+    --attacks-received '{attacks_on_a}' &
 
-    # 결과를 debate_history에 추가
-done
+python scripts/multi_llm_debater.py \
+    --provider gpt --role B --phase prep_defense \
+    --topic "{topic}" --viewpoint "{viewpoint_b}" \
+    --round 1 \
+    --own-research '{research_b_json}' \
+    --debate-history '{round1_history}' \
+    --attacks-received '{attacks_on_b}' &
 
-# Round 2: B → C → A (순서 회전)
-# Round 3: C → A → B (최종 라운드, --is-final 플래그 추가)
+python scripts/multi_llm_debater.py \
+    --provider gemini --role C --phase prep_defense \
+    --topic "{topic}" --viewpoint "{viewpoint_c}" \
+    --round 1 \
+    --own-research '{research_c_json}' \
+    --debate-history '{round1_history}' \
+    --attacks-received '{attacks_on_c}' &
+
+wait  # 모든 프로세스 완료 대기
 ```
 
-### Step 6: Conclusion
+### Step 6: Round 2 - Defense & Counterattack (Sequential)
+
+```bash
+# 발언 순서 회전: B → C → A
+python scripts/multi_llm_debater.py \
+    --provider gpt --role B --phase round_defense \
+    --topic "{topic}" --viewpoint "{viewpoint_b}" \
+    --round 2 \
+    --own-research '{research_b_json}' \
+    --own-prep '{prep_b_json}' \
+    --debate-history '{full_history}' \
+    --attacks-to-address '{attacks_on_b}'
+
+# C 방어 + 반격
+# A 방어 + 반격
+```
+
+### Step 7: Round 3 - Final Round (Sequential)
+
+```bash
+# 발언 순서 회전: C → A → B
+# --is-final 플래그 추가로 합의점 제안 요청
+python scripts/multi_llm_debater.py \
+    --provider gemini --role C --phase round_defense \
+    --topic "{topic}" --viewpoint "{viewpoint_c}" \
+    --round 3 --is-final \
+    --own-research '{research_c_json}' \
+    --own-prep '{prep_c_json}' \
+    --debate-history '{full_history}' \
+    --attacks-to-address '{attacks_on_c}'
+```
+
+### Step 8: Conclusion
 
 토론 결과를 분석하여 합의점과 미합의점을 도출합니다.
 
 ## Output Format
 
 ```markdown
-# 🌌 Multiverse 토론 결과: {topic}
+# Multiverse 토론 결과: {topic}
 
 ## 참여자
 - **토론자 A** (Claude Opus) - {관점 α}
@@ -196,14 +273,14 @@ done
 
 ## 토론 하이라이트
 
-### Round 1
-{각 프로바이더의 주요 공격/옹호}
+### Round 1: 주장
+{각 프로바이더의 초기 주장과 공격}
 
-### Round 2
+### Round 2: 방어
 {방어와 반격}
 
-### Round 3 (Final)
-{최종 입장 정리}
+### Round 3: 최종
+{최종 입장 정리 및 합의 제안}
 
 ## 합의된 사항
 1. {합의점 1}
@@ -241,11 +318,13 @@ if provider not in available_providers():
 
 ### Timeout Handling
 ```python
-# 각 스테이지에 타임아웃 설정
-timeout_per_stage = {
-    "research": 120,
-    "preparation": 90,
-    "debate": 60
+# 각 phase별 타임아웃 설정
+timeout_per_phase = {
+    "initial_research": 180,  # WebSearch 포함
+    "round_claim": 90,
+    "round_claim_attack": 90,
+    "prep_defense": 180,       # WebSearch 포함
+    "round_defense": 90
 }
 ```
 
@@ -256,6 +335,7 @@ timeout_per_stage = {
 - **비용 고려**: 3개 프로바이더를 모두 사용하면 비용이 증가합니다
 - **Claude 전용 모드**: --providers claude,claude,claude로 Claude만 사용 가능
 - **기존 /debate와 차이**: /debate는 Claude 내부 에이전트만 사용, /debate-multiverse는 외부 LLM 호출
+- **병렬 실행 필수**: initial_research와 prep_defense는 반드시 병렬로 실행해야 컨텍스트 오염 방지
 
 ## Prerequisites
 
